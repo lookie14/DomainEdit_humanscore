@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>KAIRI Human Alignment</title>
+<style>
+  :root { --bg:#f5f5f3; --card:#fff; --ink:#1d1d1f; --mute:#6e6e73; --line:#e2e2df;
+          --o:#2f7d4f; --x:#b3412f; --acc:#2f5fb3; --cur:#eef3fd; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.45 -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+  header { position:sticky; top:0; z-index:3; background:var(--card); border-bottom:1px solid var(--line);
+           padding:8px 16px; display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; }
+  header b { font-size:15px; }
+  .pill { font-size:12.5px; padding:2px 9px; border-radius:10px; background:var(--cur); }
+  .bar { flex:1 1 140px; height:6px; background:var(--line); border-radius:3px; overflow:hidden; }
+  .bar > div { height:100%; width:0; background:var(--o); transition:width .2s; }
+  #sync { font-size:12px; color:var(--mute); }
+  button { font:inherit; color:inherit; border:1px solid var(--line); background:var(--card); border-radius:8px;
+           padding:6px 12px; cursor:pointer; }
+  button:disabled { opacity:.45; cursor:default; }
+  main { max-width:1200px; margin:0 auto; padding:12px 16px 40px; display:grid; gap:14px;
+         grid-template-columns:minmax(0,1fr) 400px; align-items:start; }
+  @media (max-width: 860px) { main { grid-template-columns:1fr; padding:10px 12px 40px; } }
+  .imgbox { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px;
+            display:flex; justify-content:center; position:sticky; top:56px; }
+  @media (max-width: 860px) { .imgbox { position:static; } }
+  .imgbox img { max-width:100%; max-height:calc(100vh - 90px); object-fit:contain; cursor:zoom-in; border-radius:6px; }
+  @media (max-width: 860px) { .imgbox img { max-height:62vh; } }
+  .imgbox.zoom img { max-height:none; cursor:zoom-out; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .meta { display:flex; justify-content:space-between; color:var(--mute); font-size:12.5px; margin-bottom:10px; }
+  .atom { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px;
+          display:flex; gap:10px; align-items:center; }
+  .atom.cur { border-color:#a9c1ef; background:var(--cur); }
+  .q { flex:1; font-weight:600; font-size:14.5px; }
+  .exp { display:block; font-weight:400; font-size:12.5px; color:var(--mute); margin-top:2px; }
+  .ox { display:flex; gap:6px; }
+  .ox button { width:52px; height:44px; font-size:19px; font-weight:700; padding:0; }
+  .ox button.on[data-v="O"] { background:var(--o); border-color:var(--o); color:#fff; }
+  .ox button.on[data-v="X"] { background:var(--x); border-color:var(--x); color:#fff; }
+  .ctx { border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:12px 0 6px; }
+  .ctx .t { font-weight:600; font-size:14.5px; }
+  .ctx .s { font-size:12.5px; color:var(--mute); margin:2px 0 8px; }
+  .scale { display:grid; grid-template-columns:repeat(11, 1fr); gap:4px; }
+  .scale button { padding:0; height:40px; font-weight:600; }
+  .scale button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .anch { display:flex; justify-content:space-between; font-size:11.5px; color:var(--mute); margin-top:4px; }
+  .submit { width:100%; margin-top:12px; height:48px; font-size:16px; font-weight:700;
+            background:var(--ink); color:#fff; border-color:var(--ink); }
+  .nav { display:flex; gap:6px; margin-top:8px; }
+  .nav button { flex:1; }
+  details { margin-top:14px; color:var(--mute); font-size:13px; }
+  details li { margin:3px 0; }
+  .done-tag { color:var(--o); font-weight:700; }
+  #picker { position:fixed; inset:0; z-index:9; background:rgba(245,245,243,.97); display:none;
+            align-items:center; justify-content:center; padding:16px; }
+  #picker .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:22px;
+                  width:min(420px, 100%); }
+  #picker h2 { margin:0 0 6px; font-size:18px; }
+  #picker p { margin:0 0 14px; color:var(--mute); font-size:13.5px; }
+  #pickList { display:flex; flex-direction:column; gap:8px; }
+  #pickList button { text-align:left; padding:12px; font-size:15px; }
+  #finish { display:none; text-align:center; padding:40px 16px; }
+</style>
+</head>
+<body>
+<header>
+  <b>KAIRI 평가</b>
+  <span class="pill" id="who"></span>
+  <span id="count"></span>
+  <div class="bar"><div id="prog"></div></div>
+  <span id="sync"></span>
+  <button id="menuBtn" title="평가자 변경 / CSV 백업">⋯</button>
+</header>
+
+<div id="picker"><div class="card">
+  <h2>평가자를 선택하세요</h2>
+  <p>본인 이름을 고르면 본인에게 배정된 이미지만 나옵니다. 답은 Google Sheet에 저장되므로 PC와 휴대폰을 오가며 이어서 할 수 있습니다.</p>
+  <div id="pickList"></div>
+  <div style="margin-top:14px;display:flex;gap:8px">
+    <button id="csvBtn" type="button">내 답 CSV 백업</button>
+    <button id="closePick" type="button">닫기</button>
+  </div>
+</div></div>
+
+<main id="main">
+  <div class="imgbox" id="imgbox"><img id="img" alt="평가할 이미지"></div>
+  <div class="panel">
+    <div class="meta"><span id="label"></span><span id="state"></span></div>
+    <div id="atoms"></div>
+    <div id="ctxBox"></div>
+    <button class="submit" id="submitBtn" disabled>저장하고 다음 →</button>
+    <div class="nav">
+      <button id="prevBtn">← 이전</button>
+      <button id="nextBtn">다음 →</button>
+      <button id="todoBtn">미완료로</button>
+    </div>
+    <details>
+      <summary>평가 기준</summary>
+      <ul>
+        <li>이미지만 보고 판단합니다. 질문의 <b>기대 답이 이미지와 맞으면 O</b>, 아니면 X.</li>
+        <li>"How many …"는 개수가 기대 값과 <b>정확히</b> 같을 때만 O.</li>
+        <li>색·개수·위치가 애매하면 더 그럴듯한 쪽을 고릅니다 (O 또는 X만 있습니다).</li>
+        <li>스타일이 특이해도 그 물체로 알아볼 수 있으면 있는 것으로 봅니다.</li>
+        <li><b>장면 어울림(0–10)</b>: 추가된 물체가 배경과 크기·조명·스타일·위치 면에서 자연스럽게 섞였는지. 0 = 전혀 안 어울림, 5 = 어색하지만 장면의 일부로 볼 수 있음, 10 = 원래 장면의 일부 같음.</li>
+        <li>다른 평가자와 상의하지 않습니다. 저장한 답은 ← 이전으로 돌아가 고칠 수 있습니다.</li>
+        <li>PC 단축키: <b>O</b>/<b>X</b> 현재 질문 답, <b>0–9</b> 어울림 점수(10은 <b>-</b>), <b>Enter</b> 저장, <b>←→</b> 이동, <b>Z</b> 확대</li>
+      </ul>
+    </details>
+  </div>
+</main>
+<div id="finish">
+  <h2>모든 이미지를 평가했습니다</h2>
+  <p id="finishMsg">감사합니다. 저장 상태를 확인한 뒤 창을 닫아도 됩니다.</p>
+  <button id="reviewBtn">처음부터 다시 보기</button>
+</div>
+
+<script src="config.js"></script>
+<script src="items.js"></script>
+<script>
+(function () {
+  const URL_ = (window.SCRIPT_URL || "").trim();
+  const BUNDLE = window.BUNDLE_ID || "bundle";
+  const ITEMS = window.ITEMS || {};
+  const RATERS = window.RATERS || {};
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+  const RKEY = `kairi_web::${BUNDLE}::rater`;
+  let RATER = null, LIST = [], KEY = "";
+  let S = {};          // id -> {a: "OX.." (with "." unanswered), c: int|null, sent: bool, t: iso}
+  let cur = 0, curAtom = 0, shownAt = Date.now();
+
+  // ---------------------------------------------------------------- state
+  function load() { S = store.get(KEY, {}); }
+  function save() { store.set(KEY, S); }
+  const item = (i) => ITEMS[LIST[i]];
+  function st(id) {
+    if (!S[id]) S[id] = { a: ".".repeat(ITEMS[id].atoms.length), c: null, sent: false, t: "" };
+    return S[id];
+  }
+  const complete = (id) => { const s = S[id], it = ITEMS[id];
+    return !!s && !s.a.includes(".") && (!it.ctx || s.c !== null); };
+  const isDone = (id) => !!S[id] && S[id].sent;
+  const pending = () => LIST.filter((id) => S[id] && S[id].t && !S[id].sent);
+
+  // ---------------------------------------------------------------- server
+  function setSync(t) { $("sync").textContent = t; }
+  async function pull() {
+    if (!URL_) { setSync("오프라인 모드 (CSV 백업 사용)"); return; }
+    setSync("불러오는 중…");
+    try {
+      const r = await fetch(`${URL_}?rater=${encodeURIComponent(RATER)}&bundle=${encodeURIComponent(BUNDLE)}`);
+      const j = await r.json();
+      let n = 0;
+      for (const [id, v] of Object.entries(j.done || {})) {
+        if (!ITEMS[id]) continue;
+        const loc = S[id];
+        if (loc && loc.t && !loc.sent) continue;            // local edit not yet sent wins
+        S[id] = { a: String(v.answers), c: v.context === "" || v.context === null ? null : Number(v.context),
+                  sent: true, t: v.updated_at || "" };
+        n++;
+      }
+      save(); setSync(`서버와 동기화됨 (${n}개 저장됨)`);
+    } catch (e) { setSync("서버 연결 실패 – 이 기기에 임시 저장 중"); }
+  }
+  let flushing = false;
+  async function flush() {
+    if (!URL_ || flushing) return;
+    flushing = true;
+    try {
+      for (const id of pending()) {
+        const s = S[id];
+        const rec = { rater: RATER, item_id: id, answers: s.a, context: s.c, n_atoms: ITEMS[id].atoms.length,
+                      duration_ms: s.ms || 0, bundle: BUNDLE, ua: navigator.userAgent.slice(0, 120) };
+        await fetch(URL_, { method: "POST", mode: "no-cors",
+                            headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(rec) });
+        s.sent = true; save();
+      }
+      const p = pending().length;
+      setSync(p ? `미전송 ${p}개` : "저장됨 ✓");
+    } catch (e) {
+      setSync(`전송 실패 – 미전송 ${pending().length}개 (자동 재시도)`);
+    } finally { flushing = false; render(false); }
+  }
+  setInterval(() => { if (pending().length) flush(); }, 20000);
+  window.addEventListener("online", flush);
+
+  // ---------------------------------------------------------------- render
+  function firstOpenAtom(id) { const i = st(id).a.indexOf("."); return i < 0 ? 0 : i; }
+  function render(resetAtom = true) {
+    if (!RATER) return;
+    const nDone = LIST.filter(isDone).length;
+    $("count").textContent = `${nDone} / ${LIST.length}`;
+    $("prog").style.width = (100 * nDone / Math.max(1, LIST.length)) + "%";
+    const id = LIST[cur], it = ITEMS[id], s = st(id);
+    if (resetAtom) curAtom = firstOpenAtom(id);
+    $("img").src = it.img;
+    $("label").textContent = `#${id} · ${cur + 1}/${LIST.length}`;
+    $("state").innerHTML = isDone(id) ? '<span class="done-tag">저장됨</span>'
+                         : s.t ? "전송 대기" : "";
+    const box = $("atoms"); box.innerHTML = "";
+    it.atoms.forEach((a, i) => {
+      const v = s.a[i];
+      const exp = a.a && a.a.toLowerCase() !== "yes" ? `<span class="exp">기대 답: <b>${esc(a.a)}</b></span>` : "";
+      const d = document.createElement("div");
+      d.className = "atom" + (i === curAtom ? " cur" : "");
+      d.innerHTML = `<div class="q">${i + 1}. ${esc(a.q)}${exp}</div>
+        <div class="ox"><button data-v="O" class="${v === "O" ? "on" : ""}" aria-label="O">O</button>
+        <button data-v="X" class="${v === "X" ? "on" : ""}" aria-label="X">X</button></div>`;
+      d.querySelectorAll("button").forEach((b) => b.onclick = () => { curAtom = i; setAtom(b.dataset.v); });
+      box.appendChild(d);
+    });
+    const cb = $("ctxBox");
+    if (it.ctx) {
+      cb.innerHTML = `<div class="ctx"><div class="t">장면 어울림</div>
+        <div class="s">추가된 물체가 배경과 자연스럽게 어울리나요?</div>
+        <div class="scale">${[...Array(11).keys()].map((k) =>
+          `<button data-k="${k}" class="${s.c === k ? "on" : ""}">${k}</button>`).join("")}</div>
+        <div class="anch"><span>0 전혀 안 어울림</span><span>5 어색함</span><span>10 원래 장면 같음</span></div></div>`;
+      cb.querySelectorAll("button").forEach((b) => b.onclick = () => setCtx(Number(b.dataset.k)));
+    } else cb.innerHTML = "";
+    $("submitBtn").disabled = !complete(id);
+    $("submitBtn").textContent = isDone(id) ? "수정 저장하고 다음 →" : "저장하고 다음 →";
+    $("prevBtn").disabled = cur === 0;
+    $("nextBtn").disabled = cur >= LIST.length - 1;
+  }
+  function setAtom(v) {
+    const id = LIST[cur], s = st(id);
+    s.a = s.a.slice(0, curAtom) + v + s.a.slice(curAtom + 1);
+    const nxt = s.a.indexOf(".");
+    curAtom = nxt < 0 ? curAtom : nxt;
+    save(); render(false);
+  }
+  function setCtx(k) { st(LIST[cur]).c = k; save(); render(false); }
+  function submit() {
+    const id = LIST[cur];
+    if (!complete(id)) return;
+    const s = st(id);
+    s.sent = false; s.t = new Date().toISOString(); s.ms = (s.ms || 0) + (Date.now() - shownAt);
+    save();
+    if (URL_) flush(); else setSync("이 기기에 저장됨 (CSV 백업 필요)");
+    next();
+  }
+  function go(i) {
+    cur = Math.max(0, Math.min(LIST.length - 1, i));
+    shownAt = Date.now(); $("imgbox").classList.remove("zoom");
+    store.set(KEY + "::cur", cur); render(); window.scrollTo(0, 0);
+  }
+  function next() {
+    const rest = LIST.findIndex((id, i) => i > cur && !isDone(id) && !(S[id] && S[id].t));
+    if (rest >= 0) return go(rest);
+    const any = LIST.findIndex((id) => !isDone(id) && !(S[id] && S[id].t));
+    if (any >= 0) return go(any);
+    showFinish();
+  }
+  function showFinish() {
+    $("main").style.display = "none"; $("finish").style.display = "block";
+    const p = pending().length;
+    $("finishMsg").textContent = p ? `아직 서버로 가지 않은 답이 ${p}개 있습니다. 인터넷 연결 후 잠시 기다려 주세요.`
+                                   : "감사합니다. 모든 답이 저장되었습니다.";
+  }
+
+  // ---------------------------------------------------------------- rater / csv
+  function setRater(name) {
+    RATER = name; LIST = RATERS[name] || [];
+    KEY = `kairi_web::${BUNDLE}::${name}`;
+    store.set(RKEY, name); load();
+    $("who").textContent = name; $("picker").style.display = "none";
+    $("main").style.display = ""; $("finish").style.display = "none";
+    cur = Math.min(store.get(KEY + "::cur", 0), Math.max(0, LIST.length - 1));
+    render();
+    pull().then(() => { if (isDone(LIST[cur])) next(); else render(); flush(); });
+  }
+  function showPicker() {
+    const pl = $("pickList"); pl.innerHTML = "";
+    Object.keys(RATERS).forEach((n) => {
+      const b = document.createElement("button");
+      b.textContent = `${n} · ${RATERS[n].length}장`; b.onclick = () => setRater(n); pl.appendChild(b);
+    });
+    $("csvBtn").style.display = RATER ? "" : "none";
+    $("closePick").style.display = RATER ? "" : "none";
+    $("picker").style.display = "flex";
+  }
+  function csv() {
+    const cell = (x) => { x = String(x ?? ""); return /[",\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
+    const rows = [["rater", "item_id", "answers", "context", "updated_at"]];
+    LIST.forEach((id) => { const s = S[id]; if (s && s.t) rows.push([RATER, id, s.a, s.c ?? "", s.t]); });
+    const blob = new Blob([rows.map((r) => r.map(cell).join(",")).join("\n") + "\n"], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `ratings_${RATER}_${BUNDLE}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  // ---------------------------------------------------------------- events
+  $("submitBtn").onclick = submit;
+  $("prevBtn").onclick = () => go(cur - 1);
+  $("nextBtn").onclick = () => go(cur + 1);
+  $("todoBtn").onclick = () => { cur = -1; next(); };
+  $("reviewBtn").onclick = () => { $("finish").style.display = "none"; $("main").style.display = ""; go(0); };
+  $("menuBtn").onclick = showPicker;
+  $("closePick").onclick = () => { $("picker").style.display = "none"; };
+  $("csvBtn").onclick = csv;
+  $("img").onclick = () => $("imgbox").classList.toggle("zoom");
+  document.addEventListener("keydown", (e) => {
+    if (!RATER || $("picker").style.display === "flex" || e.metaKey || e.ctrlKey) return;
+    const k = e.key.toLowerCase(), it = ITEMS[LIST[cur]];
+    if (k === "o") setAtom("O");
+    else if (k === "x") setAtom("X");
+    else if (it.ctx && /^[0-9]$/.test(k)) setCtx(Number(k));
+    else if (it.ctx && k === "-") setCtx(10);
+    else if (k === "enter") submit();
+    else if (k === "arrowright") go(cur + 1);
+    else if (k === "arrowleft") go(cur - 1);
+    else if (k === "arrowdown") { curAtom = Math.min(it.atoms.length - 1, curAtom + 1); render(false); }
+    else if (k === "arrowup") { curAtom = Math.max(0, curAtom - 1); render(false); }
+    else if (k === "z") $("imgbox").classList.toggle("zoom");
+    else return;
+    e.preventDefault();
+  });
+
+  const saved = store.get(RKEY, null), names = Object.keys(RATERS);
+  if (!names.length) { document.body.innerHTML = "<p style='padding:20px'>items.js가 없습니다.</p>"; return; }
+  if (names.length === 1) setRater(names[0]);
+  else if (saved && RATERS[saved]) setRater(saved);
+  else showPicker();
+})();
+</script>
+</body>
+</html>
